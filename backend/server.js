@@ -6,26 +6,38 @@ require('dotenv').config();
 const connectDB = require('./db');
 const Room = require('./models/Room');
 
-const { generateAIQuiz } = require('./controllers/quizController');
+const { generateAIQuiz, createManualQuiz } = require('./controllers/quizController');
 const { createRoom, joinRoom } = require('./controllers/roomController');
 
 const app = express();
+
+// Global Middleware Configuration
 app.use(cors({
-     origin: "*", // Allows any frontend domain (like localhost or Vercel) to make API requests
-     methods: ["GET", "POST"]
-   }));
+  origin: "*", // Allows any frontend domain (like localhost or Vercel) to make API requests
+  methods: ["GET", "POST"]
+}));
 app.use(express.json());
 
 const server = http.createServer(app);
+
+// Initialize Socket.io with open CORS configuration to allow Vercel origins to connect
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
+  cors: { 
+    origin: "*", 
+    methods: ["GET", "POST"] 
+  }
 });
 
 connectDB();
 
 // REST API Endpoints
 app.get('/', (req, res) => res.send('Quizeria Engine Running'));
+
+// Quiz Operations Endpoints
 app.post('/api/quizzes/generate-ai', generateAIQuiz);
+app.post('/api/quizzes/create-manual', createManualQuiz); // Link your new manual quiz controller
+
+// Live Room Operations Endpoints
 app.post('/api/rooms/create', createRoom);
 app.post('/api/rooms/join', joinRoom);
 

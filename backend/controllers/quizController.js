@@ -70,3 +70,34 @@ exports.generateAIQuiz = async (req, res) => {
     });
   }
 };
+const createManualQuiz = async (req, res) => {
+  try {
+    const { title, questions, creatorId } = req.body;
+
+    if (!title || !questions || questions.length === 0) {
+      return res.status(400).json({ error: "Title and questions are required." });
+    }
+
+    // Format and validate incoming questions array to match our Mongoose Schema
+    const formattedQuestions = questions.map((q) => ({
+      questionText: q.questionText,
+      options: [q.optionA, q.optionB, q.optionC, q.optionD],
+      correctAnswer: q.correctAnswer
+    }));
+
+    const newQuiz = new Quiz({
+      title,
+      questions: formattedQuestions,
+      creatorId: creatorId || "teacher_dev"
+    });
+
+    await newQuiz.save();
+    res.status(201).json({ quiz: newQuiz });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create manual quiz." });
+  }
+};
+
+// Update your module.exports at the bottom to include it:
+module.exports = { generateAIQuiz, createManualQuiz };
