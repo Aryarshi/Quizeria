@@ -79,7 +79,7 @@ export default function QuizCreator() {
       if (!quizRes.ok) throw new Error(quizData.error || 'Failed to generate quiz');
 
       // 2. Open the active live session room
-      const roomRes = await fetch('http://localhost:5000/api/rooms/create', {
+      const roomRes = await fetch('https://quizeria-gxag.onrender.com/api/rooms/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quizId: quizData.quiz._id, hostId: "teacher_dev" })

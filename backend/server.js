@@ -10,7 +10,10 @@ const { generateAIQuiz } = require('./controllers/quizController');
 const { createRoom, joinRoom } = require('./controllers/roomController');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+     origin: "*", // Allows any frontend domain (like localhost or Vercel) to make API requests
+     methods: ["GET", "POST"]
+   }));
 app.use(express.json());
 
 const server = http.createServer(app);
