@@ -49,7 +49,7 @@ export default function StudentJoin() {
     const cleanCode = roomCode.replace(/\s+/g, '');
 
     try {
-      const response = await fetch('http://localhost:5000/api/rooms/join', {
+      const response = await fetch('https://quizeria-gxag.onrender.com/api/rooms/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode: cleanCode, nickname })
