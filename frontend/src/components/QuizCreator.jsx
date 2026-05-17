@@ -10,7 +10,7 @@ export default function QuizCreator() {
   const [topic, setTopic] = useState('');
   const [numQuestions, setNumQuestions] = useState(5); 
 
-  // Manual Form State (Starts with one blank question structure)
+  // Manual Form State
   const [manualQuestions, setManualQuestions] = useState([
     { questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: '' }
   ]);
@@ -54,7 +54,20 @@ export default function QuizCreator() {
     };
   }, [activeRoomCode]);
 
-  // AI Handler Execution Pipeline
+  // Safe response parser utility
+  const parseResponse = async (response) => {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      const htmlText = await response.text();
+      // Try to extract express error message from HTML response body if present
+      const match = htmlText.match(/<pre>([\s\S]*?)<\/pre>/);
+      const cleanText = match ? match[1] : `HTML Error Page (Status ${response.status})`;
+      throw new Error(cleanText);
+    }
+  };
+
   const handleAIGenerate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -65,7 +78,8 @@ export default function QuizCreator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: quizTitle, topic, numQuestions: parseInt(numQuestions), creatorId: "teacher_dev" })
       });
-      const quizData = await quizRes.json();
+      
+      const quizData = await parseResponse(quizRes);
       if (!quizRes.ok) throw new Error(quizData.error || 'Failed to generate AI quiz');
       launchRoom(quizData.quiz._id);
     } catch (err) {
@@ -74,10 +88,8 @@ export default function QuizCreator() {
     }
   };
 
-  // Manual Handler Execution Pipeline
   const handleManualSubmit = async (e) => {
     e.preventDefault();
-    // Validation validation check to make sure correct answers are picked
     for (let i = 0; i < manualQuestions.length; i++) {
       if (!manualQuestions[i].correctAnswer) {
         alert(`Please assign a correct answer option for Question #${i + 1}`);
@@ -92,7 +104,8 @@ export default function QuizCreator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: quizTitle, questions: manualQuestions, creatorId: "teacher_dev" })
       });
-      const quizData = await quizRes.json();
+      
+      const quizData = await parseResponse(quizRes);
       if (!quizRes.ok) throw new Error(quizData.error || 'Failed to create manual quiz');
       launchRoom(quizData.quiz._id);
     } catch (err) {
@@ -108,14 +121,13 @@ export default function QuizCreator() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quizId, hostId: "teacher_dev" })
       });
-      const roomData = await roomRes.json();
+      const roomData = await parseResponse(roomRes);
       if (roomRes.ok) setActiveRoomCode(roomData.roomCode);
     } catch (err) {
-      setMessage({ type: 'error', text: "Failed to open live room sync connection." });
+      setMessage({ type: 'error', text: err.message || "Failed to open live room sync connection." });
     } finally { setLoading(false); }
   };
 
-  // State Array modifiers for Manual Fields
   const updateManualField = (index, field, value) => {
     const updated = [...manualQuestions];
     updated[index][field] = value;
@@ -131,7 +143,6 @@ export default function QuizCreator() {
     setManualQuestions(manualQuestions.filter((_, i) => i !== index));
   };
 
-  // RENDER LEVEL 3: Game Completed Podium Leaderboard
   if (finalLeaderboard) {
     return (
       <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl text-white text-center">
@@ -153,7 +164,6 @@ export default function QuizCreator() {
     );
   }
 
-  // RENDER LEVEL 2: Question Master Display
   if (gameStarted && currentQuestion) {
     return (
       <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl text-white">
@@ -174,7 +184,6 @@ export default function QuizCreator() {
     );
   }
 
-  // RENDER LEVEL 1: Roster Waiting Lobby
   if (activeRoomCode) {
     return (
       <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl text-center text-white">
@@ -198,15 +207,17 @@ export default function QuizCreator() {
     <div className="w-full max-w-2xl bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl text-white">
       <h2 className="text-2xl font-bold mb-4">🛠️ Create Your Quiz Room</h2>
 
-      {/* Mode Navigation Bar */}
       <div className="flex bg-slate-900 p-1 rounded-xl mb-6">
         <button type="button" onClick={() => setActiveTab('ai')} className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all cursor-pointer ${activeTab === 'ai' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}><Sparkles size={16} /> Use AI Generator</button>
         <button type="button" onClick={() => setActiveTab('manual')} className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all cursor-pointer ${activeTab === 'manual' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}><Plus size={16} /> Add Manually</button>
       </div>
 
-      {message && <div className="p-3 bg-rose-950/50 border border-rose-500 text-rose-400 text-xs rounded-xl mb-4">❌ {message.text}</div>}
+      {message && (
+        <div className="p-4 bg-rose-950/50 border border-rose-500 text-rose-400 text-sm font-medium rounded-xl mb-6">
+          <strong>Backend Error:</strong> {message.text}
+        </div>
+      )}
 
-      {/* Layout Option A: AI Prompt Fields */}
       {activeTab === 'ai' ? (
         <form onSubmit={handleAIGenerate} className="space-y-4">
           <div>
@@ -228,7 +239,6 @@ export default function QuizCreator() {
           <button type="submit" disabled={loading} className="w-full bg-violet-600 py-3 rounded-xl font-bold cursor-pointer hover:bg-violet-700">{loading ? 'Generating via Gemini...' : 'Generate Live Quiz Room'}</button>
         </form>
       ) : (
-        /* Layout Option B: Hand-crafted Manual Inputs Form Stack */
         <form onSubmit={handleManualSubmit} className="space-y-6">
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">Quiz Title</label>
