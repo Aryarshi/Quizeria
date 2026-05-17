@@ -1,15 +1,16 @@
 const { GoogleGenAI, Type } = require('@google/genai');
 const Quiz = require('../models/Quiz');
 
-// Initialize the Gemini client (it automatically picks up GEMINI_API_KEY from process.env)
-const ai = new GoogleGenAI({});
+// Initialize the Gemini client using the environment key
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+// --- AI GENERATION CONTROLLER ---
 exports.generateAIQuiz = async (req, res) => {
   try {
     const { topic, numQuestions, creatorId, title } = req.body;
 
     if (!topic || !creatorId || !title) {
-      return res.status(400).json({ message: 'Missing required fields: topic, title, or creatorId' });
+      return res.status(400).json({ error: 'Missing required fields: topic, title, or creatorId' });
     }
 
     const count = numQuestions || 5;
@@ -70,7 +71,9 @@ exports.generateAIQuiz = async (req, res) => {
     });
   }
 };
-const createManualQuiz = async (req, res) => {
+
+// --- MANUAL CREATION CONTROLLER ---
+exports.createManualQuiz = async (req, res) => {
   try {
     const { title, questions, creatorId } = req.body;
 
@@ -82,7 +85,8 @@ const createManualQuiz = async (req, res) => {
     const formattedQuestions = questions.map((q) => ({
       questionText: q.questionText,
       options: [q.optionA, q.optionB, q.optionC, q.optionD],
-      correctAnswer: q.correctAnswer
+      correctAnswer: q.correctAnswer,
+      timeLimit: 30 // standard default time limit
     }));
 
     const newQuiz = new Quiz({
@@ -94,10 +98,7 @@ const createManualQuiz = async (req, res) => {
     await newQuiz.save();
     res.status(201).json({ quiz: newQuiz });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create manual quiz." });
+    console.error("❌ Manual Creation Error:", err);
+    res.status(500).json({ error: "Failed to create manual quiz.", details: err.message });
   }
 };
-
-// Update your module.exports at the bottom to include it:
-module.exports = { generateAIQuiz, createManualQuiz };
