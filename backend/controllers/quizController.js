@@ -4,8 +4,7 @@ const Quiz = require('../models/Quiz');
 // Initialize the Gemini client using the environment key
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// --- AI GENERATION CONTROLLER ---
-exports.generateAIQuiz = async (req, res) => {
+const generateAIQuiz = async (req, res) => {
   try {
     const { topic, numQuestions, creatorId, title } = req.body;
 
@@ -72,8 +71,7 @@ exports.generateAIQuiz = async (req, res) => {
   }
 };
 
-// --- MANUAL CREATION CONTROLLER ---
-exports.createManualQuiz = async (req, res) => {
+const createManualQuiz = async (req, res) => {
   try {
     const { title, questions, creatorId } = req.body;
 
@@ -101,4 +99,9 @@ exports.createManualQuiz = async (req, res) => {
     console.error("❌ Manual Creation Error:", err);
     res.status(500).json({ error: "Failed to create manual quiz.", details: err.message });
   }
+};
+
+module.exports = {
+  generateAIQuiz,
+  createManualQuiz
 };
